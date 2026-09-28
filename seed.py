@@ -5,15 +5,6 @@ Usage:
     python seed.py --hours 24   # generate 24h of heartbeat history (default 6)
     python seed.py --schema-only  # tables only, no sample data
 
-The simulated fleet (10 units) includes the situations your dashboard
-must handle:
-  - healthy online units with good/weak signal
-  - one unit OFFLINE (last heartbeat 2h ago)
-  - one unit online but NOT receiving the stream
-  - one unit with chronic underruns (weak RSSI)
-  - one unit slowly leaking heap
-  - one unit that brownout-reset recently (solar/battery suspect)
-  - one brand-new unregistered unit (no name/zone yet)
 """
 
 import argparse

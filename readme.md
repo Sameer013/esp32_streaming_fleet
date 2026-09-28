@@ -119,10 +119,23 @@ python server.py --host 0.0.0.0 --port 8080
 Or directly with Uvicorn:
 
 ```bash
-uvicorn server:app --host 0.0.0.0 --port 8080
+uvicorn server:app --host 0.0.0.0 --port 5000 --reload 
 ```
 
 Once running, interactive API docs are available at `http://<server-ip>:8080/docs`.
+
+## API Docs
+ 
+Replace `<ip_where_server_is_running>` with the IP of the machine running the server.
+ 
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `http://<ip_where_server_is_running>:5000/dashboard` | Dashboard UI |
+| GET | `http://<ip_where_server_is_running>:5000/docs` | Interactive FastAPI docs (Swagger UI) with the full list of endpoints |
+ 
+> **Note:** The `/docs` page loads its CSS/JS from a CDN, so the machine you open it on needs an internet connection. Without internet the page won't render properly.
+
+
 
 ## Heartbeat & Monitoring
 
@@ -131,6 +144,7 @@ Once running, interactive API docs are available at `http://<server-ip>:8080/doc
 ```bash
 sqlite3 hooter.db "SELECT * FROM <table>;"
 ```
+There is also `seed.py` where it will do the inital seeding of the database read that file I have mentioned all the arguments in that file.
 
 ## ESP32 Firmware
 
