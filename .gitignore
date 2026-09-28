@@ -1,0 +1,7 @@
+.env
+ffmpeg-8.1/
+Icecast/
+*.db*
+audio/track*
+
+__pylance__/

@@ -1,0 +1,18 @@
+{
+  "tracks": {
+    "1": { "zone": "zone1", "audio": "track1.mp3" },
+    "2": { "zone": "zone1", "audio": "track2.mp3" },
+    "3": { "zone": "zone2", "audio": "track3.mp3" },
+    "4": { "zone": "all",   "audio": "track4.mp3" }
+  },
+  "zones": {
+    "zone1": "/live1",
+    "zone2": "/live2"
+  },
+  "icecast": {
+    "host":     "192.168.1.50",
+    "port":     8000,
+    "password": "password"
+  },
+  "audio_dir": "./audio"
+}

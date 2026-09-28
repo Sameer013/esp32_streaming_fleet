@@ -1,0 +1,66 @@
+{
+  "tracks": {
+    "1": {
+      "zone": "zone1",
+      "audio": "track1.mp3"
+    },
+
+    "2": {
+      "zone": "zone1",
+      "audio": "track2.mp3"
+    },
+    "3": {
+      "zone": "zone1",
+      "audio": "track3.mp3"
+    },
+    "4": {
+      "zone": "zone1",
+      "audio": "track4.mp3"
+    },
+    "5": {
+      "zone": "zone1",
+      "audio": "track5.mp3"
+    },
+    "6": {
+      "zone": "zone1",
+      "audio": "track6.mp3"
+    },
+    "7": {
+      "zone": "zone1",
+      "audio": "track7.mp3"
+    },
+    "8": {
+      "zone": "zone1",
+      "audio": "track8.mp3"
+    },
+    "9": {
+      "zone": "zone1",
+      "audio": "track9.mp3"
+    },
+
+    "10": {
+      "zone": "zone2",
+      "audio": "track3.mp3"
+    },
+
+    "11": {
+      "zone": "all",
+      "audio": "track4.mp3"
+    }
+  },
+
+  "zones": {
+    "zone1": "/live1",
+    "zone2": "/live2"
+  },
+
+  "icecast": 
+  {
+    "host": "127.0.0.1",
+    "port": 8000,
+    "password": "password"
+  },
+
+  "audio_dir": "./audio",
+  "silence_file": "./audio/silence.mp3"
+}

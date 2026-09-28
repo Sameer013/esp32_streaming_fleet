@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hooter Fleet</title>
+<style>
+  :root {
+    --bg:#14181d; --panel:#1c2129; --line:#2a313b;
+    --text:#dde3ea; --dim:#8b95a3;
+    --ok:#46d17c; --bad:#e05252; --warn:#e0a53f; --accent:#e0a53f;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body {
+    background:var(--bg); color:var(--text);
+    font:14px/1.45 system-ui,sans-serif;
+    padding:20px; max-width:1300px; margin:0 auto;
+  }
+  .mono { font-family:ui-monospace,Consolas,monospace; }
+  header {
+    display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+    border-bottom:2px solid var(--accent); padding-bottom:12px; margin-bottom:20px;
+  }
+  header h1 { font-size:18px; letter-spacing:.04em; text-transform:uppercase; }
+  #summary { color:var(--dim); }
+  #summary b { color:var(--text); }
+  #summary .down { color:var(--bad); }
+  header .updated { margin-left:auto; color:var(--dim); font-size:12px; }
+  .grid {
+    display:grid; gap:14px;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  }
+  .card {
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:8px; padding:14px 16px;
+  }
+  .card.offline { border-color:var(--bad); }
+  .card-head { display:flex; align-items:center; gap:8px; margin-bottom:2px; }
+  .dot { width:10px; height:10px; border-radius:50%; flex:none; }
+  .dot.on  { background:var(--ok); box-shadow:0 0 6px var(--ok); }
+  .dot.off { background:var(--bad); }
+  .card-head .name { font-weight:600; font-size:15px; }
+  .card-head .name.unnamed { color:var(--dim); font-style:italic; }
+  .card-head button {
+    margin-left:auto; background:none; border:1px solid var(--line);
+    color:var(--dim); border-radius:5px; padding:2px 8px; cursor:pointer; font-size:12px;
+  }
+  .card-head button:hover { color:var(--text); border-color:var(--dim); }
+  .sub { color:var(--dim); font-size:12px; margin-bottom:10px; }
+  .rssi { display:inline-flex; align-items:flex-end; gap:2px; height:14px; }
+  .rssi span { width:4px; background:var(--line); border-radius:1px; }
+  .rssi span.lit { background:var(--ok); }
+  .rssi.weak span.lit { background:var(--warn); }
+  .rssi span:nth-child(1){height:4px} .rssi span:nth-child(2){height:7px}
+  .rssi span:nth-child(3){height:10px} .rssi span:nth-child(4){height:14px}
+  table.stats { width:100%; border-collapse:collapse; font-size:13px; }
+  table.stats td { padding:3px 0; }
+  table.stats td:first-child { color:var(--dim); width:46%; }
+  .flag-bad { color:var(--bad); }
+  .flag-warn { color:var(--warn); }
+  .empty { color:var(--dim); text-align:center; padding:60px 0; }
+
+  footer {
+    margin-top: 30px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    color: var(--dim);
+    font-size: 12px;
+}
+
+footer strong {
+    color: var(--accent);
+    letter-spacing: .05em;
+}
+
+footer .version {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    opacity: .8;
+}
+</style>
+</head>
+<body>
+
+{# ==== Jinja macros (must be defined before use) ==== #}
+
+{# small formatting helpers so first paint matches JS #}
+{% macro ago(s) -%}
+{% if s < 60 %}{{ s }}s ago{% elif s < 3600 %}{{ (s/60)|int }}m ago{% else %}{{ (s/3600)|int }}h ago{% endif %}
+{%- endmacro %}
+
+{% macro uptime(s) -%}
+{% if s is none %}—{% else %}
+  {%- set d = (s // 86400)|int -%}{%- set h = ((s % 86400)//3600)|int -%}{%- set m = ((s % 3600)//60)|int -%}
+  {%- if d %}{{ d }}d {{ h }}h{% elif h %}{{ h }}h {{ m }}m{% else %}{{ m }}m{% endif -%}
+{% endif %}
+{%- endmacro %}
+
+{% macro heap(b) -%}
+{% if b is none %}—{% else %}{{ (b/1024)|round|int }} KB{% endif %}
+{%- endmacro %}
+
+{% macro rssi_bars(rssi) -%}
+{% if rssi is none %}—{% else %}
+  {%- set lit = 4 if rssi >= -55 else 3 if rssi >= -67 else 2 if rssi >= -75 else 1 if rssi >= -85 else 0 -%}
+  <span class="rssi {{ 'weak' if lit <= 2 else '' }}">
+    {%- for i in range(1,5) %}<span class="{{ 'lit' if i <= lit else '' }}"></span>{% endfor -%}
+  </span> <span class="mono">{{ rssi }} dBm</span>
+{% endif %}
+{%- endmacro %}
+
+{# ---- server-rendered card (mirror of JS cardHtml) ---- #}
+{% macro device_card(d) -%}
+<div class="card {{ '' if d.online else 'offline' }}">
+  <div class="card-head">
+    <span class="dot {{ 'on' if d.online else 'off' }}"></span>
+    <span class="name {{ '' if d.name else 'unnamed' }}">{{ d.name or 'unnamed device' }}</span>
+    <button onclick="rename('{{ d.mac }}', '{{ d.name or '' }}')">edit</button>
+  </div>
+  <div class="sub mono">
+    {{ d.mac }} &middot; {{ d.ip or '?' }}{% if d.zone %} &middot; {{ d.zone }}{% endif %}
+  </div>
+  <table class="stats">
+    <tr><td>Status</td><td>
+      {% if d.online %}online{% else %}<span class="flag-bad">offline</span>{% endif %}
+      &middot; {{ ago(d.last_seen_s_ago) }}
+    </td></tr>
+    <tr><td>Signal</td><td>{{ rssi_bars(d.rssi) }}</td></tr>
+    <tr><td>Stream</td><td>
+      {% if d.online %}
+        {% if d.stream_connected %}<span style="color:var(--ok)">streaming</span>
+        {% else %}<span class="flag-bad">no stream</span>{% endif %}
+        {% if d.buffer_level is not none %} &middot; buf {{ (d.buffer_level / 1024)|round|int }} KB{% endif %}
+      {% else %}—{% endif %}
+    </td></tr>
+    <tr><td>Uptime</td><td>{{ uptime(d.uptime_s) }} &middot; boot: {{ d.reset_reason or '—' }}</td></tr>
+    <tr><td>Underruns</td><td>
+      {% if d.underruns and d.underruns > 0 %}<span class="flag-warn">{{ d.underruns }}</span>
+      {% else %}{{ d.underruns if d.underruns is not none else '—' }}{% endif %}
+      &middot; wifi drops: {{ d.wifi_reconnects if d.wifi_reconnects is not none else '—' }}
+    </td></tr>
+    <tr><td>Heap</td><td class="mono">
+      {{ heap(d.heap_free) }}{% if d.vbat is not none %} &middot; {{ '%.2f'|format(d.vbat) }} V{% endif %}
+    </td></tr>
+  </table>
+</div>
+{%- endmacro %}
+
+
+{# ==== page ==== #}
+<header>
+  <h1>Hooter Fleet</h1>
+  <div id="summary">
+    <b>{{ online }}</b>/{{ total }} online
+    {% if total - online > 0 %}&middot; <b class="down">{{ total - online }} down</b>{% endif %}
+  </div>
+  <div class="updated" id="updated"></div>
+</header>
+
+<div class="grid" id="grid">
+  {% for d in devices %}{{ device_card(d) }}{% endfor %}
+</div>
+{% if not devices %}
+<div class="empty">No devices yet. Units self-register on their first heartbeat.</div>
+{% endif %}
+
+
+<script>
+// ---- JS card (mirror of Jinja device_card macro) ----
+const fmtUptime = s => {
+  if (s == null) return "—";
+  const d = Math.floor(s/86400), h = Math.floor(s%86400/3600), m = Math.floor(s%3600/60);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+};
+const fmtAgo = s => s < 60 ? `${s}s ago` : s < 3600 ? `${Math.floor(s/60)}m ago` : `${Math.floor(s/3600)}h ago`;
+const fmtHeap = b => b == null ? "—" : `${Math.round(b/1024)} KB`;
+
+function rssiBars(rssi) {
+  if (rssi == null) return "—";
+  const lit = rssi >= -55 ? 4 : rssi >= -67 ? 3 : rssi >= -75 ? 2 : rssi >= -85 ? 1 : 0;
+  const weak = lit <= 2 ? " weak" : "";
+  let bars = "";
+  for (let i = 1; i <= 4; i++) bars += `<span class="${i <= lit ? "lit" : ""}"></span>`;
+  return `<span class="rssi${weak}">${bars}</span> <span class="mono">${rssi} dBm</span>`;
+}
+
+function esc(s) { return String(s).replace(/'/g, "\\'"); }
+
+function cardHtml(d) {
+  const name = d.name || "unnamed device";
+  const stream = d.online
+    ? (d.stream_connected ? `<span style="color:var(--ok)">streaming</span>`
+                          : `<span class="flag-bad">no stream</span>`)
+      + (d.buffer_level != null ? ` &middot; buf ${Math.round(d.buffer_level/1024)} KB` : "")
+    : "—";
+  const underruns = (d.underruns && d.underruns > 0)
+    ? `<span class="flag-warn">${d.underruns}</span>` : (d.underruns ?? "—");
+  return `
+  <div class="card ${d.online ? "" : "offline"}">
+    <div class="card-head">
+      <span class="dot ${d.online ? "on" : "off"}"></span>
+      <span class="name ${d.name ? "" : "unnamed"}">${name}</span>
+      <button onclick="rename('${d.mac}', '${esc(d.name || "")}')">edit</button>
+    </div>
+    <div class="sub mono">${d.mac} &middot; ${d.ip || "?"}${d.zone ? " &middot; " + d.zone : ""}</div>
+    <table class="stats">
+      <tr><td>Status</td><td>${d.online ? "online" : `<span class="flag-bad">offline</span>`} &middot; ${fmtAgo(d.last_seen_s_ago)}</td></tr>
+      <tr><td>Signal</td><td>${rssiBars(d.rssi)}</td></tr>
+      <tr><td>Stream</td><td>${stream}</td></tr>
+      <tr><td>Uptime</td><td>${fmtUptime(d.uptime_s)} &middot; boot: ${d.reset_reason ?? "—"}</td></tr>
+      <tr><td>Underruns</td><td>${underruns} &middot; wifi drops: ${d.wifi_reconnects ?? "—"}</td></tr>
+      <tr><td>Heap</td><td class="mono">${fmtHeap(d.heap_free)}${d.vbat != null ? ` &middot; ${d.vbat.toFixed(2)} V` : ""}</td></tr>
+    </table>
+  </div>`;
+}
+
+async function rename(mac, current) {
+  const name = prompt("Device name (e.g. Gate 3 Hooter):", current || "");
+  if (name === null) return;
+  await fetch(`/api/devices/${mac}`, {
+    method: "PATCH",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({name})
+  });
+  refresh();
+}
+
+async function refresh() {
+  try {
+    const devices = await (await fetch("/api/devices")).json();
+    const online = devices.filter(d => d.online).length;
+    const down = devices.length - online;
+    document.getElementById("summary").innerHTML =
+      `<b>${online}</b>/${devices.length} online` +
+      (down ? ` &middot; <b class="down">${down} down</b>` : "");
+    document.getElementById("grid").innerHTML = devices.map(cardHtml).join("");
+    document.getElementById("updated").textContent = "updated " + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById("updated").textContent = "refresh failed";
+  }
+}
+
+document.getElementById("updated").textContent = "updated " + new Date().toLocaleTimeString();
+setInterval(refresh, 10000);
+</script>
+<footer>
+    <div>
+        <strong>SIGMA E SOLUTION PVT. LTD.</strong> |
+        Industrial IoT Monitoring Platform
+    </div>
+    <div class="version">
+        Hooter Fleet Dashboard • Version 1.0
+    </div>
+</footer>
+</body>
+</html>
