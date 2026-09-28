@@ -122,6 +122,35 @@ Or directly with Uvicorn:
 uvicorn server:app --host 0.0.0.0 --port 5000 --reload 
 ```
 
+
+```
+PS D:\FILES\Code\Python\joda\server> uvicorn server:app --host 0.0.0.0 --port 5000 --reload                                                       
+INFO:     Will watch for changes in these directories: ['D:\\FILES\\Code\\Python\\joda\\server']
+INFO:     Uvicorn running on http://0.0.0.0:5000 (Press CTRL+C to quit)
+INFO:     Started reloader process [24944] using StatReload
+INFO:     Started server process [23968]
+INFO:     Waiting for application startup.
+INFO:heartbeat:Hooter DB ready at D:\FILES\Code\Python\joda\server\hooter.db
+INFO:server:Persistent FFmpeg started for zone1
+INFO:server:Persistent FFmpeg started for zone2
+INFO:     Application startup complete.
+INFO:     127.0.0.1:30861 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:30861 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:46031 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:8767 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:17595 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:26795 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35322 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:4255 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52043 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:8487 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48516 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51151 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7570 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7570 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7570 - "GET /openapi.json HTTP/1.1" 200 OK
+```
+
 Once running, interactive API docs are available at `http://<server-ip>:8080/docs`.
 
 ## API Docs
@@ -134,6 +163,8 @@ Replace `<ip_where_server_is_running>` with the IP of the machine running the se
 | GET | `http://<ip_where_server_is_running>:5000/docs` | Interactive FastAPI docs (Swagger UI) with the full list of endpoints |
  
 > **Note:** The `/docs` page loads its CSS/JS from a CDN, so the machine you open it on needs an internet connection. Without internet the page won't render properly.
+
+![Dashboard Preview](images/img1.png)
 
 
 
