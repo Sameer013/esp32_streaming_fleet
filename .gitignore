@@ -4,4 +4,4 @@ Icecast/
 *.db*
 audio/track*
 
-__pylance__/
+__pylance*
